@@ -16,22 +16,29 @@ def superimpose(structure, other):
     str_atoms = []
     other_atoms = []
 
-    chain_pairs = [ (x, y) for x in str_model.values() for y in other_model.values()]
+    similarity = {}
+
+    chain_pairs = [ (x, y) for x in str_model.keys() for y in other_model.keys()]
 
     for pair in chain_pairs:
 
-        for str_res in pair[0]:
+        for str_res in str_model[pair[0]]:
 
             str_atoms.append(str_res['CA'])
 
-        for other_res in pair[1]:
+        for other_res in other_model[pair[1]]:
 
             other_atoms.append(other_res['CA'])
 
         superimposer.set_atoms(str_atoms, other_atoms)
 
         if superimposer.rms <= 2:
-            
+
+            similarity[pair] = True
+
+        else:
+
+            similarity[pair] = False
         #superimposer.apply(other_model.get_atoms())
 
 
