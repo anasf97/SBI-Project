@@ -7,7 +7,7 @@ def read_pdb(file):
     structure = parser.get_structure(pdb_id , file)
 
 
-def superimpose(structure, other):
+def compare_structures(structure, other):
     superimposer = Superimposer()
 
     str_model = structure[0]
@@ -34,12 +34,22 @@ def superimpose(structure, other):
 
         if superimposer.rms <= 2:
 
-            similarity[pair] = True
+            similarity[1] = []
+
+            similarity[1].append(pair)
 
         else:
+            similarity[0] = []
 
-            similarity[pair] = False
+            similarity[0].append(pair)
         #superimposer.apply(other_model.get_atoms())
+
+    return similarity
+
+def superimpose(struture, other):
+
+    for pair in similarity[1]:
+
 
 
 if __name__ == "__main__":
