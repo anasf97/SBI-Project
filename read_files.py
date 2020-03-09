@@ -85,4 +85,4 @@ if __name__ == "__main__":
     options = parser.parse_args()
 
     if os.path.isdir(options.infile):
-        filelist = [f for f in os.listdir(options.infile) if f.endswith((".fasta",".fa", ".fa.gz", ".fasta.gz"))]
+        filelist = [f for f in os.listdir(options.infile) if f.endswith(".pdb"]
