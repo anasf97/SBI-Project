@@ -11,7 +11,7 @@ def compare_structures(structure, other):
     superimposer = Superimposer()
 
     str_model = structure[0]
-    other _model = other[0]
+    other_model = other[0]
 
     str_atoms = []
     other_atoms = []
@@ -46,9 +46,32 @@ def compare_structures(structure, other):
 
     return similarity
 
-def superimpose(struture, other):
+def superimpose(structure, other):
 
-    for pair in similarity[1]:
+    str_model = structure[0]
+    other_model = other[0]
+
+    str_atoms = []
+    other_atoms = []
+
+    for chain_pair in similarity[1]:
+
+        for str_res in str_model[chain_pair[0]]:
+
+            str_atoms.append(str_res['CA'])
+
+        for other_res in other_model[chain_pair[1]]:
+
+            other_atoms.append(str_res['CA'])
+
+    superimposer.set_atoms(str_atoms, other_atoms)
+
+    superimposer.apply(other_model.get_atoms())
+
+
+
+
+
 
 
 
