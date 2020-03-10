@@ -1,52 +1,61 @@
 from Bio.PDB import *
+from Bio import pairwise2
+from Bio import Align
+from Bio.Seq import Seq
+from Bio.Align import MultipleSeqAlignment
+from Bio.SubsMat import MatrixInfo
 
 def read_pdb(file):
     parser = PDBParser()
     filext = file.split(".")
     pdb_id = filext[0]
     structure = parser.get_structure(pdb_id , file)
+    return structure
+
+def get_sequence(structure):
+    ppb = PPBuilder()
+
+    for polypeptide in ppb.build_peptides(structure):
+        sequence = polypeptide.get_sequence()
+    return sequence
+
+def align_sequences(seq, other):
+    structure_matrix = MatrixInfo.structure
+    alignment = pairwise2.align.localds(seq, other, structure_matrix, -4, -1 )
+    #alignment = pairwise2.align.localxx(seq, other)
+    return alignment[0]
 
 
 def compare_structures(structure, other):
-    superimposer = Superimposer()
-
     str_model = structure[0]
     other_model = other[0]
 
-    str_atoms = []
-    other_atoms = []
-
     similarity = {}
 
-    chain_pairs = [ (x, y) for x in str_model.keys() for y in other_model.keys()]
+    chain_pairs = [ (str_chain, other_chain) for str_chain in str_model for other_chain in other_model]
 
-    for pair in chain_pairs:
+    for str_chain, other_chain in chain_pairs:
 
-        for str_res in str_model[pair[0]]:
+        str_chain_seq = get_sequence(str_chain)
 
-            str_atoms.append(str_res['CA'])
+        other_chain_seq = get_sequence(other_chain)
 
-        for other_res in other_model[pair[1]]:
+        alignment = align_sequences(str_chain_seq, other_chain_seq)
 
-            other_atoms.append(other_res['CA'])
+        final_score = alignment[2]/max(len(str_chain_seq), len(other_chain_seq))
 
-        superimposer.set_atoms(str_atoms, other_atoms)
+        if final_score >= 1:
 
-        if superimposer.rms <= 2:
+            start = alignment[3]
 
-            similarity[1] = []
+            end = alignment[4]
 
-            similarity[1].append(pair)
-
-        else:
-            similarity[0] = []
-
-            similarity[0].append(pair)
-        #superimposer.apply(other_model.get_atoms())
+            similarity[(str_chain, other_chain)] = (start, end)
 
     return similarity
 
-def superimpose(structure, other):
+def superimpose(structure, other, similarity):
+    superimposer = Superimposer()
 
     str_model = structure[0]
     other_model = other[0]
@@ -58,24 +67,25 @@ def superimpose(structure, other):
 
         for str_res in str_model[chain_pair[0]]:
 
-            str_atoms.append(str_res['CA'])
+            str_atoms.append(str_res[('CA' or "P")])
 
         for other_res in other_model[chain_pair[1]]:
 
-            other_atoms.append(str_res['CA'])
+            other_atoms.append(str_res[('CA' or "P")])
 
     superimposer.set_atoms(str_atoms, other_atoms)
 
     superimposer.apply(other_model.get_atoms())
 
-
-
-
-
+    for chain in other_model:
+        for res in chain:
+            if res.values() not in other_atoms:
+                other_atoms_not_superimp.append(res['CA'])
 
 
 
 if __name__ == "__main__":
+    """
     parser = argparse.ArgumentParser(description="Take input and output files...")
 
     parser.add_argument("-i", "--input", dest="infile", action="store", default= os.getcwd(), help="Input FASTA formatted file")
@@ -85,4 +95,27 @@ if __name__ == "__main__":
     options = parser.parse_args()
 
     if os.path.isdir(options.infile):
-        filelist = [f for f in os.listdir(options.infile) if f.endswith(".pdb"]
+        filelist = [f for f in os.listdir(options.infile) if f.endswith(".pdb")]
+    """
+
+    str1 = read_pdb("WyQ.pdb")
+
+    str2 = read_pdb("QyH.pdb")
+
+    str3 = read_pdb("otherH.pdb")
+
+    seq1 = get_sequence(str1)
+
+    seq2 = get_sequence(str2)
+
+    seq3 = get_sequence(str3)
+
+    chainQ1 = str1[0]["W"]
+
+    chainQ3 = str2[0]["H"]
+
+    seqQ1 = get_sequence(chainQ1)
+
+    seqQ3 = get_sequence(chainQ3)
+
+    align = align_sequences(seqQ1, seqQ3)
