@@ -20,8 +20,8 @@ def get_sequence(structure):
     return sequence
 
 def align_sequences(seq, other):
-    structure_matrix = MatrixInfo.structure
-    alignment = pairwise2.align.localds(seq, other, structure_matrix, -4, -1 )
+    structure_matrix = MatrixInfo.blosum62
+    alignment = pairwise2.align.localds(seq, other, structure_matrix, -8, -1 )
     #alignment = pairwise2.align.localxx(seq, other)
     return alignment[0]
 
@@ -37,7 +37,6 @@ def compare_structures(structure, other):
     for str_chain, other_chain in chain_pairs:
 
         str_chain_seq = get_sequence(str_chain)
-
         other_chain_seq = get_sequence(other_chain)
 
         alignment = align_sequences(str_chain_seq, other_chain_seq)
@@ -45,12 +44,9 @@ def compare_structures(structure, other):
         final_score = alignment[2]/max(len(str_chain_seq), len(other_chain_seq))
 
         if final_score >= 1:
-
             start = alignment[3]
-
             end = alignment[4]
-
-            similarity[(str_chain, other_chain)] = (start, end)
+            similarity = ((str_chain, other_chain), start, end)
 
     return similarity
 
@@ -60,28 +56,37 @@ def superimpose(structure, other, similarity):
     str_model = structure[0]
     other_model = other[0]
 
-    str_atoms = []
-    other_atoms = []
+    start = similarity[1]
+    end = similarity[2]
 
-    for chain_pair in similarity[1]:
+    str_atoms_sup = []
+    other_atoms_sup = []
 
-        for str_res in str_model[chain_pair[0]]:
+    str_chain_sup = similarity[0][0]
+    other_chain_sup = similarity[0][1]
 
-            str_atoms.append(str_res[('CA' or "P")])
+    for i in range(start+1, end+1):
 
-        for other_res in other_model[chain_pair[1]]:
+        str_atoms_sup.append(str_chain_sup[i][('CA')])
+        other_atoms_sup.append(other_chain_sup[i][('CA')])
 
-            other_atoms.append(str_res[('CA' or "P")])
-
-    superimposer.set_atoms(str_atoms, other_atoms)
-
+    superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
     superimposer.apply(other_model.get_atoms())
 
-    for chain in other_model:
-        for res in chain:
-            if res.values() not in other_atoms:
-                other_atoms_not_superimp.append(res['CA'])
+    other_atoms_not_sup = []
+    all_str_atoms = []
 
+    for chain in other_model:
+        if chain != other_chain_sup:
+            for res in chain:
+                other_atoms_not_sup.append(res['CA'])
+
+    for atom in str_model.get_atoms():
+        all_str_atoms.append(res['CA'])
+
+    final_structure = other_atoms_not_sup + all_str_atoms
+
+    return final_structure
 
 
 if __name__ == "__main__":
@@ -110,12 +115,14 @@ if __name__ == "__main__":
 
     seq3 = get_sequence(str3)
 
-    chainQ1 = str1[0]["W"]
+    chainQ1 = str1[0]["Q"]
 
-    chainQ3 = str2[0]["H"]
+    chainQ3 = str2[0]["Q"]
 
     seqQ1 = get_sequence(chainQ1)
 
     seqQ3 = get_sequence(chainQ3)
 
     align = align_sequences(seqQ1, seqQ3)
+
+    sim = compare_structures(str1, str2)
