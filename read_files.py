@@ -1,16 +1,14 @@
 from Bio.PDB import *
 from Bio import pairwise2
-from Bio import Align
-from Bio.Seq import Seq
-from Bio.Align import MultipleSeqAlignment
 from Bio.SubsMat import MatrixInfo
+import itertools
 
 def read_pdb(file):
     parser = PDBParser()
     filext = file.split(".")
     pdb_id = filext[0]
     structure = parser.get_structure(pdb_id , file)
-    return structure
+    return structure[0]
 
 def get_sequence(structure):
     ppb = PPBuilder()
@@ -22,17 +20,14 @@ def get_sequence(structure):
 def align_sequences(seq, other):
     structure_matrix = MatrixInfo.blosum62
     alignment = pairwise2.align.localds(seq, other, structure_matrix, -8, -1 )
-    #alignment = pairwise2.align.localxx(seq, other)
     return alignment[0]
 
 
 def compare_structures(structure, other):
-    str_model = structure[0]
-    other_model = other[0]
 
     similarity = {}
 
-    chain_pairs = [ (str_chain, other_chain) for str_chain in str_model for other_chain in other_model]
+    chain_pairs = [ (str_chain, other_chain) for str_chain in structure for other_chain in other]
 
     for str_chain, other_chain in chain_pairs:
 
@@ -47,14 +42,12 @@ def compare_structures(structure, other):
             start = alignment[3]
             end = alignment[4]
             similarity = ((str_chain, other_chain), start, end)
+            return similarity
 
-    return similarity
+    return False
 
 def superimpose(structure, other, similarity):
     superimposer = Superimposer()
-
-    str_model = structure[0]
-    other_model = other[0]
 
     start = similarity[1]
     end = similarity[2]
@@ -71,22 +64,40 @@ def superimpose(structure, other, similarity):
         other_atoms_sup.append(other_chain_sup[i][('CA')])
 
     superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
-    superimposer.apply(other_model.get_atoms())
+    superimposer.apply(other.get_atoms())
 
     other_atoms_not_sup = []
     all_str_atoms = []
 
-    for chain in other_model:
+    for chain in other:
         if chain != other_chain_sup:
             for res in chain:
                 other_atoms_not_sup.append(res['CA'])
 
-    for atom in str_model.get_atoms():
+    for atom in structure.get_atoms():
         all_str_atoms.append(res['CA'])
 
     final_structure = other_atoms_not_sup + all_str_atoms
 
     return final_structure
+
+
+def complex_builder(filelist):
+
+    structure_list = list(map(read_pdb, filelist))
+    structure_combinations = list(itertools.combinations(structure_list, 2))
+
+    complex = []
+
+    for structure, other in structure_combinations:
+
+        similarity = compare_structures(structure, other)
+
+        if similarity:
+
+            complex += superimpose(structure, other, similarity)
+
+    return complex
 
 
 if __name__ == "__main__":
@@ -115,6 +126,11 @@ if __name__ == "__main__":
 
     seq3 = get_sequence(str3)
 
+    sim = compare_structures(str1, str2)
+
+    filelist = ["WyQ.pdb", "QyH.pdb"]
+
+"""
     chainQ1 = str1[0]["Q"]
 
     chainQ3 = str2[0]["Q"]
@@ -124,5 +140,4 @@ if __name__ == "__main__":
     seqQ3 = get_sequence(chainQ3)
 
     align = align_sequences(seqQ1, seqQ3)
-
-    sim = compare_structures(str1, str2)
+"""
