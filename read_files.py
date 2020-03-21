@@ -47,30 +47,22 @@ def compare_sequences(structure, other):
 
     return False
 
-def superimpose_chain(structure, other, similarity):
+def superimpose_chain(structure, other, chain, other_chain, start, end):
     superimposer = Superimposer()
-
-    start = similarity[1]
-    end = similarity[2]
 
     str_atoms_sup = []
     other_atoms_sup = []
 
-    str_chain_sup = similarity[0][0]
-    other_chain_sup = similarity[0][1]
-
     for i in range(start+1, end+1):
 
-        str_atoms_sup.append(str_chain_sup[i][('CA')])
-        other_atoms_sup.append(other_chain_sup[i][('CA')])
+        str_atoms_sup.append(chain[i][('CA')])
+        other_atoms_sup.append(other_chain[i][('CA')])
 
     superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
     superimposer.apply(other.get_atoms())
 
-    other_atoms_not_sup = []
-
     for chain in other:
-        if chain != other_chain_sup:
+        if chain != other_chain:
             chain.detach_parent()
             return chain
 
@@ -100,12 +92,12 @@ def complex_builder(filelist):
 
 def structure_clashes(complex, chain):
 
-    complex_atom = [atom for atom in list(complex.get_atoms()) if atom.get_id() == "CA"]
+    complex_atom = [atom for atom in list(complex.get_atoms()) if atom.id == "CA"]
     neighbor_search = NeighborSearch(complex_atoms)
 
     for chain_atom in list(chain.get_atoms()):
         for complex_atom in ns.search(chain_atom.get_coord(), 1.2, 'A'):
-            clashing_chain = atom.get_parent().get_parent().get_id()
+            clashing_chain = atom.get_parent().get_parent.id
             return clashing_chain
 
     return False
@@ -113,8 +105,8 @@ def structure_clashes(complex, chain):
 def write_pdb(structure):
     io = PDBIO()
     io.set_structure(structure)
-    io.save("holi.pdb")
-    return "holi."
+    io.save(structure + ".pdb")
+    return "File was correctly saved"
 
 
 
