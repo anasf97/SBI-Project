@@ -17,7 +17,7 @@ class Complex():
 		comunicator(self.get_pdbs("."))          # as an unreadable pdb and ask the user how to continue.
 
 
-	def get_complex(self, pdb_folder = ".", stoichiometry = False, correct_chains = True):
+	def get_complex(self, pdb_folder = ".", stoichiometry = False, correct_chains = True, stop_if_warnings = True):
 		"""Builds the complex using pdbs in pdb_folder wich should contain
 		pairs of interacting structures. Stoichiometry can be given as a
 		dictionary with chain names as key, if not given, all fitting structures
@@ -47,16 +47,16 @@ class Complex():
 		if not correct_chains:
 			self.get_chains_corrected()
 		for pair_index in range(len(self.pairs)):
-			for chain_name in self.pairs[pair_index].child_dict:
+			for chain_name in self.pairs[pair_index][0].child_dict:
 				try:
 					self.chain_dict[chain_name].append(pair_index)
 				except: # the first time a chain_name used, except will create the coresponding list
 					self.chain_dict[chain_name] = [pair_index,]
 
-		self._bulid_complex_no_dna_strange_thinghs_please(self.pairs[0],stoichiometry)
+		self.bulid_complex_no_dna_strange_thinghs_please(self.pairs[0], stoichiometry)
 
 
-	def _bulid_complex_no_dna_strange_thinghs_please(self, base, stoichiometry, chain_types = "missing", missing_tries = "all"):
+	def bulid_complex_no_dna_strange_thinghs_please(self, base, stoichiometry, chain_types = "missing", missing_tries = "all"):
 		"""Builds the complex without taking into acount posible dificulties associated with dna
 		is a semiprivate function, the users should use get_complex, that ends calling this function"""
 		model_number = len(self.complex_models)
@@ -65,7 +65,7 @@ class Complex():
 		# method would be to store only the transformation matrices for the models but we do not expect memory
 		# problems
 		miss = False
-		current_model = self.complex_models[model_number]
+		current_model = self.complex_models[model_number][0]
 
 		if chain_types == "missing":
 			miss = True
@@ -84,22 +84,22 @@ class Complex():
 			for chain_missing in missing_tries:
 				chain_in_model = current_model.child_dict[chain_missing]
 				for other_pair_id in missing_tries[chain_missing]:
-					other_chain = self.pairs[other_pair_id].child_dict[chain_types[other_pair_id]]
+					other_chain = self.pairs[other_pair_id][0].child_dict[chain_types[chain_missing]]
 
-					seq_in_model = get_sequence(chain_in_model)
-					other_seq = get_sequence(other_chain)
-					alignment = align_sequences(seq_in_model, other_seq)
+					#seq_in_model = get_sequence(chain_in_model)
+					#other_seq = get_sequence(other_chain)
+					#alignment = align_sequences(seq_in_model, other_seq)
 
-					start = alignment[3]+1
-					end = alignment[4]+1
+					#start = alignment[3]+1
+					#end = alignment[4]+1
 
-					rotated_chain = superimpose_chain(self.complex_models[model_number], self.pairs[other_pair_id], chain_in_model, other_chain, start, end)
+					rotated_chain = superimpose_chain(current_model, self.pairs[other_pair_id][0], chain_in_model, other_chain) #start, end)
 
 					if structure_clashes(current_model, rotated_chain):
 						current_model.detach_child(chain.id)
 					else:
 						current_model.add(rotated_chain)
-						self._bulid_complex_no_dna_strange_thinghs_please(current_model,stoichiometry)
+						self.bulid_complex_no_dna_strange_thinghs_please(current_model,stoichiometry)
 
 				missing_tries.pop(chain_missing)
 

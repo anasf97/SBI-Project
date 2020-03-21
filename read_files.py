@@ -6,16 +6,18 @@ import itertools
 
 def read_pdb(file):
     parser = PDBParser()
-    filext = file.split(".")
+    filext = file.split(".pdb")
     pdb_id = filext[0]
-    structure = parser.get_structure(pdb_id , file)
-    return structure[0]
+    structure = parser.get_structure(pdb_id, file)
+    return structure
 
 def get_sequence(structure):
     ppb = PPBuilder()
 
+    sequence = ""
+
     for polypeptide in ppb.build_peptides(structure):
-        sequence = polypeptide.get_sequence()
+        sequence += polypeptide.get_sequence()
     return sequence
 
 def align_sequences(seq, other):
@@ -47,16 +49,18 @@ def compare_sequences(structure, other):
 
     return False
 
-def superimpose_chain(structure, other, chain, other_chain, start, end):
+def superimpose_chain(structure, other, chain, other_chain): #(start, end):
     superimposer = Superimposer()
 
     str_atoms_sup = []
     other_atoms_sup = []
 
-    for i in range(start+1, end+1):
-
-        str_atoms_sup.append(chain[i][('CA')])
-        other_atoms_sup.append(other_chain[i][('CA')])
+    for residue in chain:
+        try:
+            str_atoms_sup.append(residue[('CA')])
+            other_atoms_sup.append(residue[('CA')])
+        except:
+            pass
 
     superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
     superimposer.apply(other.get_atoms())
@@ -92,11 +96,11 @@ def complex_builder(filelist):
 
 def structure_clashes(complex, chain):
 
-    complex_atom = [atom for atom in list(complex.get_atoms()) if atom.id == "CA"]
+    complex_atoms = [atom for atom in list(complex.get_atoms()) if atom.id == "CA"]
     neighbor_search = NeighborSearch(complex_atoms)
 
     for chain_atom in list(chain.get_atoms()):
-        for complex_atom in ns.search(chain_atom.get_coord(), 1.2, 'A'):
+        for complex_atom in neighbor_search.search(chain_atom.get_coord(), 1.2, 'A'):
             clashing_chain = atom.get_parent().get_parent.id
             return clashing_chain
 
