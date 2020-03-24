@@ -74,6 +74,12 @@ class Complex():
 			missing_tries = {}
 			for chain_name in current_model.child_dict:
 				missing_tries[chain_name] = self.chain_dict[chain_name]
+				"""try:
+					missing_tries[chain_name].remove(0)
+				except ValueError:
+					pass
+				if len(missing_tries[chain_name]) == 0:
+					del missing_tries[chain_name]"""
 				if miss:
 					chain_types[chain_name]=chain_name # As some chains will be repeated, we will have to rename them. This dictionary will help to
 					# keep track of what type it is each chain.
@@ -81,7 +87,7 @@ class Complex():
 			stoichiometry = {x:50 for x in self.chain_dict}
 
 		while len(missing_tries)>0:
-			for chain_missing in missing_tries:
+			for chain_missing in list(missing_tries):
 				chain_in_model = current_model.child_dict[chain_missing]
 				for other_pair_id in missing_tries[chain_missing]:
 					other_chain = self.pairs[other_pair_id][0].child_dict[chain_types[chain_missing]]
@@ -96,12 +102,13 @@ class Complex():
 					rotated_chain = superimpose_chain(current_model, self.pairs[other_pair_id][0], chain_in_model, other_chain) #start, end)
 
 					if structure_clashes(current_model, rotated_chain):
-						current_model.detach_child(chain.id)
+						#current_model.detach_child(rotated_chain.id)
+						missing_tries[other_chain].pop(other_pair_id)
+
 					else:
 						current_model.add(rotated_chain)
-						self.bulid_complex_no_dna_strange_thinghs_please(current_model,stoichiometry)
-
-				missing_tries.pop(chain_missing)
+						missing_tries[rotated_chain.id] = self.chain_dict[chain_name]
+						#self.bulid_complex_no_dna_strange_thinghs_please(current_model.get_parent(), stoichiometry)
 
 		write_pdb(current_model)
 
