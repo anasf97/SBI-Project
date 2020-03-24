@@ -101,7 +101,7 @@ class Complex():
 					if rotated_chain.id in current_model.child_dict.keys():
 						# repeated chain name, need to be changes
 						rotated_chain.id = [x for x in "QWERTYUIOPASDFGHJKLZXCVBNM" if x not in current_model.child_dict.keys()][0]
-						
+
 					if structure_clashes(current_model, rotated_chain):
 						troble_makers = self.get_clash_responsibles(current_model, rotated_chain)
 						if len(troble_makers)==1: # cheking if we are trying to add a chain that already is in the model
@@ -111,24 +111,24 @@ class Complex():
 							except:
 								pass # try and pass structure are to ignore possible rmsd errors due to diferent number of atoms
 								# if they have different number of atoms they are not the same chain
-								
+
 						new_model = copy.deepcopy(current_model) # as there is a conflict(clashes) we are going to generate two models
 						new_missing = {x: missing_tries[x] for x in missing_tries if x not in troble_makers}
 						for chain in troble_makers:
 							new_model.detach_child(chain)
-						
-						
+
+
 						new_model.add(rotated_chain)
 						new_missing[rotated_chain.id]=self.chain_dict[other_chain_id]
 						new_chain_types = copy.deepcopy(chain_types)
 						new_chain_types[rotated_chain.id] = other_chain_id
-						self.bulid_complex_no_dna_strange_thinghs_please(new_model,stoichiometry, new_chain_types, new_missing)
-						
+						self.bulid_complex_no_dna_strange_thinghs_please(new_model.get_parent(),stoichiometry, new_chain_types, new_missing)
+
 					else:
 						current_model.add(rotated_chain)
 						chain_types[rotated_chain.id] = other_chain_id
-						missing[rotated_chain.id]=self.chain_dict[other_chain_id]
-						
+						missing_tries[rotated_chain.id]=self.chain_dict[other_chain_id]
+
 
 				missing_tries.pop(chain_missing)
 
@@ -206,7 +206,7 @@ class Complex():
 
 
 def get_rmsd(chain_a,chain_b):
-	"""Uses QCPSuperimposer from Biopython to obtain the rmsd of two 
+	"""Uses QCPSuperimposer from Biopython to obtain the rmsd of two
 	chains without superimposing."""
 	Super = Bio.PDB.QCPSuperimposer()
 	Super.set(chain_a, chain_b)
