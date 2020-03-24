@@ -101,7 +101,7 @@ def structure_clashes(complex, chain):
 
     for chain_atom in list(chain.get_atoms()):
         for complex_atom in neighbor_search.search(chain_atom.get_coord(), 1.2, 'A'):
-            clashing_chain = atom.get_parent().get_parent.id
+            clashing_chain = complex_atom.get_parent().get_parent().id
             return clashing_chain
 
     return False
@@ -109,7 +109,7 @@ def structure_clashes(complex, chain):
 def write_pdb(structure):
     io = PDBIO()
     io.set_structure(structure)
-    io.save(structure + ".pdb")
+    io.save(structure.id + "model.pdb")
     return "File was correctly saved"
 
 
