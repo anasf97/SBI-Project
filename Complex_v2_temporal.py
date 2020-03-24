@@ -134,7 +134,7 @@ class Complex():
 
 			missing_tries.pop(model_chain_id)
 
-		write_pdb(current_model)
+		write_pdb(current_model.get_parent(), model_number)
 
 		"""
 		PSEUDOCODE -> missing functions
