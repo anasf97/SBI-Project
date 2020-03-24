@@ -4,6 +4,7 @@ import os
 import sys
 import copy
 import Bio
+import numpy as np
 
 class Complex():
 	"""Stores a complex that can be build from pairs of structures.
@@ -57,7 +58,7 @@ class Complex():
 		self.bulid_complex_no_dna_strange_thinghs_please(self.pairs[0], stoichiometry)
 
 
-	def bulid_complex_no_dna_strange_thinghs_please(self, base, stoichiometry, chain_types = "missing", missing_tries = "all"):
+	def bulid_complex_no_dna_strange_thinghs_please(self, base, stoichiometry, chain_types = "missing", missing_tries = "all", rmsd_threshold=10):
 		"""Builds the complex without taking into acount posible dificulties associated with dna
 		is a semiprivate function, the users should use get_complex, that ends calling this function"""
 		model_number = len(self.complex_models)
@@ -82,55 +83,56 @@ class Complex():
 			stoichiometry = {x:50 for x in self.chain_dict}
 
 		while len(missing_tries)>0:
-			for model_chain_id in missing_tries:
-				chain_in_model = current_model.child_dict[model_chain_id]
-				for pair_id in missing_tries[model_chain_id]:
-					other_chain_id = [x for x in self.pairs[pair_id][0].child_dict.keys() if x != chain_types[model_chain_id]][0]
-					print("-"*100)
-					print(pair_id)
-					other_chain = self.pairs[pair_id][0].child_dict[other_chain_id]
+			model_chain_id = [x for x in missing_tries.keys()][0]
+			chain_in_model = current_model.child_dict[model_chain_id]
+			for pair_id in missing_tries[model_chain_id]:
+				other_chain_id = [x for x in self.pairs[pair_id][0].child_dict.keys() if x != chain_types[model_chain_id]][0]
+				print("-"*100)
+				print(pair_id)
+				other_chain = self.pairs[pair_id][0].child_dict[other_chain_id]
 
-					#seq_in_model = get_sequence(chain_in_model)
-					#other_seq = get_sequence(other_chain)
-					#alignment = align_sequences(seq_in_model, other_seq)
+				#seq_in_model = get_sequence(chain_in_model)
+				#other_seq = get_sequence(other_chain)
+				#alignment = align_sequences(seq_in_model, other_seq)
 
-					#start = alignment[3]+1
-					#end = alignment[4]+1
+				#start = alignment[3]+1
+				#end = alignment[4]+1
 
-					rotated_chain = superimpose_chain(current_model, self.pairs[pair_id][0], chain_in_model, other_chain) #start, end)
-					if rotated_chain.id in current_model.child_dict.keys():
-						# repeated chain name, need to be changes
-						rotated_chain.id = [x for x in "QWERTYUIOPASDFGHJKLZXCVBNM" if x not in current_model.child_dict.keys()][0]
+				rotated_chain = superimpose_chain(current_model, self.pairs[pair_id][0], chain_in_model, other_chain) #start, end)
+				if rotated_chain.id in current_model.child_dict.keys():
+					# repeated chain name, need to be changes
+					rotated_chain.id = [x for x in "QWERTYUIOPASDFGHJKLZXCVBNM" if x not in current_model.child_dict.keys()][0]
 
-					if structure_clashes(current_model, rotated_chain):
-						troble_makers = self.get_clash_responsibles(current_model, rotated_chain)
-						if len(troble_makers)==1: # cheking if we are trying to add a chain that already is in the model
-							try: # that may happen if such chain is in contact with multiple chains
-								if get_rmsd(current_model[troble_makers[0]], rotated_chain) <= rmsd_threshold:
-									continue # If the chain is already in the model we do not have to do anything
-							except:
-								pass # try and pass structure are to ignore possible rmsd errors due to diferent number of atoms
-								# if they have different number of atoms they are not the same chain
+				if structure_clashes(current_model, rotated_chain):
+					troble_makers = self.get_clash_responsibles(current_model, rotated_chain)
+					if len(troble_makers)==1: # cheking if we are trying to add a chain that already is in the model
+						try: # that may happen if such chain is in contact with multiple chains
+							if get_rmsd(current_model[troble_makers[0]], rotated_chain) <= rmsd_threshold:
+								continue # If the chain is already in the model we do not have to do anything
+						except:
+							a = get_rmsd(current_model[troble_makers[0]], rotated_chain) <= rmsd_threshold
+							pass # try and pass structure are to ignore possible rmsd errors due to diferent number of atoms
+							# if they have different number of atoms they are not the same chain
 
-						new_model = copy.deepcopy(current_model) # as there is a conflict(clashes) we are going to generate two models
-						new_missing = {x: missing_tries[x] for x in missing_tries if x not in troble_makers}
-						for chain in troble_makers:
-							new_model.detach_child(chain)
-
-
-						new_model.add(rotated_chain)
-						new_missing[rotated_chain.id]=self.chain_dict[other_chain_id]
-						new_chain_types = copy.deepcopy(chain_types)
-						new_chain_types[rotated_chain.id] = other_chain_id
-						self.bulid_complex_no_dna_strange_thinghs_please(new_model.get_parent(),stoichiometry, new_chain_types, new_missing)
-
-					else:
-						current_model.add(rotated_chain)
-						chain_types[rotated_chain.id] = other_chain_id
-						missing_tries[rotated_chain.id]=self.chain_dict[other_chain_id]
+					new_model = copy.deepcopy(current_model) # as there is a conflict(clashes) we are going to generate two models
+					new_missing = {x: missing_tries[x] for x in missing_tries if x not in troble_makers}
+					for chain in troble_makers:
+						new_model.detach_child(chain)
 
 
-				missing_tries.pop(chain_missing)
+					new_model.add(rotated_chain)
+					new_missing[rotated_chain.id]=self.chain_dict[other_chain_id]
+					new_chain_types = copy.deepcopy(chain_types)
+					new_chain_types[rotated_chain.id] = other_chain_id
+					self.bulid_complex_no_dna_strange_thinghs_please(new_model.get_parent(),stoichiometry, new_chain_types, new_missing, rmsd_threshold = rmsd_threshold)
+
+				else:
+					current_model.add(rotated_chain)
+					chain_types[rotated_chain.id] = other_chain_id
+					missing_tries[rotated_chain.id]=self.chain_dict[other_chain_id]
+
+
+			missing_tries.pop(model_chain_id)
 
 		write_pdb(current_model)
 
@@ -208,6 +210,16 @@ class Complex():
 def get_rmsd(chain_a,chain_b):
 	"""Uses QCPSuperimposer from Biopython to obtain the rmsd of two
 	chains without superimposing."""
-	Super = Bio.PDB.QCPSuperimposer()
-	Super.set(chain_a, chain_b)
+	Super = Bio.SVDSuperimposer.SVDSuperimposer()
+	str_atoms_sup = []
+	other_atoms_sup = []
+
+	for residue1, residue2 in zip(chain_a,chain_b):
+		try:
+			str_atoms_sup.append([x for x in residue1[('CA')].get_vector()])
+			other_atoms_sup.append([x for x in residue2[('CA')].get_vector()])
+		except:
+			pass
+	#print(len(str_atoms_sup), str_atoms_sup[0])
+	Super.set(np.array(str_atoms_sup), np.array(other_atoms_sup))
 	return(Super.get_init_rms())
