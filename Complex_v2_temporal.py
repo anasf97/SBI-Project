@@ -62,6 +62,8 @@ class Complex():
 		"""Builds the complex without taking into acount posible dificulties associated with dna
 		is a semiprivate function, the users should use get_complex, that ends calling this function"""
 		model_number = len(self.complex_models)
+		if model_number > 50:
+			return # limiting number of models
 		self.complex_models.append(copy.deepcopy(base)) # we have to copy it as we want to have several models
 		# if we pass it by reference we would end modifing all models the same time. A more memory eficient
 		# method would be to store only the transformation matrices for the models but we do not expect memory
@@ -85,7 +87,8 @@ class Complex():
 		while len(missing_tries)>0:
 			model_chain_id = [x for x in missing_tries.keys()][0]
 			chain_in_model = current_model.child_dict[model_chain_id]
-			for pair_id in missing_tries[model_chain_id]:
+			while len(missing_tries[model_chain_id])>0:
+				pair_id = missing_tries[model_chain_id].pop()
 				other_chain_id = [x for x in self.pairs[pair_id][0].child_dict.keys() if x != chain_types[model_chain_id]][0]
 				print("-"*100)
 				print(pair_id)
@@ -99,9 +102,11 @@ class Complex():
 				#end = alignment[4]+1
 
 				rotated_chain = superimpose_chain(current_model, self.pairs[pair_id][0], chain_in_model, other_chain) #start, end)
+				if rotated_chain is None:
+					continue # Not sure why can it be None, but it happens
 				if rotated_chain.id in current_model.child_dict.keys():
 					# repeated chain name, need to be changes
-					rotated_chain.id = [x for x in "QWERTYUIOPASDFGHJKLZXCVBNM" if x not in current_model.child_dict.keys()][0]
+					rotated_chain.id = [x for x in "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm" if x not in current_model.child_dict.keys()][0]
 
 				if structure_clashes(current_model, rotated_chain):
 					troble_makers = self.get_clash_responsibles(current_model, rotated_chain)
@@ -121,7 +126,7 @@ class Complex():
 
 
 					new_model.add(rotated_chain)
-					new_missing[rotated_chain.id]=self.chain_dict[other_chain_id]
+					new_missing[rotated_chain.id]=[x for x in self.chain_dict[other_chain_id] if x != model_chain_id]
 					new_chain_types = copy.deepcopy(chain_types)
 					new_chain_types[rotated_chain.id] = other_chain_id
 					self.bulid_complex_no_dna_strange_thinghs_please(new_model.get_parent(),stoichiometry, new_chain_types, new_missing, rmsd_threshold = rmsd_threshold)
@@ -130,11 +135,13 @@ class Complex():
 					current_model.add(rotated_chain)
 					chain_types[rotated_chain.id] = other_chain_id
 					missing_tries[rotated_chain.id]=self.chain_dict[other_chain_id]
+			if len(self.chain_dict)> 100:
+				break # maximum chains number
 
 
 			missing_tries.pop(model_chain_id)
 
-		write_pdb(current_model.get_parent(), model_number)
+		write_pdb(current_model)
 
 		"""
 		PSEUDOCODE -> missing functions

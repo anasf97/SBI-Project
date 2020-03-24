@@ -55,10 +55,10 @@ def superimpose_chain(structure, other, chain, other_chain): #(start, end):
     str_atoms_sup = []
     other_atoms_sup = []
 
-    for residue in chain:
+    for residue1, residue2 in zip(chain,other_chain):
         try:
-            str_atoms_sup.append(residue[('CA')])
-            other_atoms_sup.append(residue[('CA')])
+            str_atoms_sup.append(residue1[('CA')])
+            other_atoms_sup.append(residue2[('CA')])
         except:
             pass
 
@@ -99,19 +99,17 @@ def structure_clashes(complex, chain):
     complex_atoms = [atom for atom in list(complex.get_atoms()) if atom.id == "CA"]
     neighbor_search = NeighborSearch(complex_atoms)
 
-    chain_atoms = [atom for atom in list(chain.get_atoms()) if atom.id == "CA"]
-
-    for chain_atom in chain_atoms:
+    for chain_atom in list(chain.get_atoms()):
         for complex_atom in neighbor_search.search(chain_atom.get_coord(), 1.2, 'A'):
             clashing_chain = complex_atom.get_parent().get_parent().id
             return clashing_chain
 
     return False
 
-def write_pdb(structure, number):
+def write_pdb(structure):
     io = PDBIO()
     io.set_structure(structure)
-    io.save("model_" + str(number) +".pdb")
+    io.save(str(structure.id) + "model.pdb")
     return "File was correctly saved"
 
 
