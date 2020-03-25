@@ -140,9 +140,10 @@ class Complex():
 
 
 			missing_tries.pop(model_chain_id)
-		
-		write_pdb(current_model,model_number)
-		
+		try:
+			write_pdb(current_model,model_number)
+		except:
+			print(model_number,current_model.child_dict) 
 
 		"""
 		PSEUDOCODE -> missing functions
@@ -198,21 +199,24 @@ class Complex():
 		names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		sequences = []
 		for pair_id in range(len(self.pairs)):
-			new_child_dict = {}
-			for chain in self.pairs[pair_id].child_dict:
+			#new_child_dict = {}
+			old_chain_names = [x for x in self.pairs[pair_id].child_dict.keys()]
+			for chain in old_chain_names:
 				seq = get_sequence(self.pairs[pair_id].child_dict[chain])
 
 				for i in range(len(names)):
 					if i==len(sequences):
 						sequences.append(seq)
-						new_child_dict[names[i]] = self.pairs[pair_id].child_dict[chain]
+						self.pairs[pair_id][chain].id = names[i]
+						#new_child_dict[names[i]] = self.pairs[pair_id].child_dict[chain]
 					else:
 						alignment = align_sequences(seq, sequences[i])
 						final_score = alignment[2]/max(len(seq), len(sequences[i]))
 						if final_score >= threshold:
-							new_child_dict[names[i]] = self.pairs[pair_id].child_dict[chain]
+							self.pairs[pair_id][chain].id = names[i]
+							#new_child_dict[names[i]] = self.pairs[pair_id].child_dict[chain]
 
-			self.pairs[pair_id].child_dict = new_child_dict
+			#self.pairs[pair_id].child_dict = new_child_dict
 
 
 def get_rmsd(chain_a,chain_b):
