@@ -3,6 +3,7 @@ from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo
 from Bio.PDB.PDBIO import PDBIO
 import itertools
+import os
 
 def read_pdb(file):
     parser = PDBParser()
@@ -21,8 +22,8 @@ def get_sequence(structure):
     return sequence
 
 def align_sequences(seq, other):
-    structure_matrix = MatrixInfo.blosum62
-    alignment = pairwise2.align.localds(seq, other, structure_matrix, -8, -1 )
+    blosum_matrix = MatrixInfo.blosum62
+    alignment = pairwise2.align.localds(seq, other, blosum_matrix, -8, -1 )
     return alignment[0]
 
 
@@ -30,7 +31,7 @@ def compare_sequences(structure, other):
 
     similarity = {}
 
-    chain_pairs = [ (str_chain, other_chain) for str_chain in structure for other_chain in other]
+    chain_pairs = [ (str_chain, other_chain) for str_chain in structure[0] for other_chain in other[0]]
 
     for str_chain, other_chain in chain_pairs:
 
@@ -57,20 +58,18 @@ def superimpose_chain(structure, other, chain, other_chain): #(start, end):
 
     for residue1, residue2 in zip(chain,other_chain):
         try:
-            if residue1[('CA')] is not None and residue2[('CA')] is not None:
-                str_atoms_sup.append(residue1[('CA')])
-                other_atoms_sup.append(residue2[('CA')])
-        except:
+            str_atoms_sup.append(residue1[('CA')])
+            other_atoms_sup.append(residue2[('CA')])
+        except KeyError:
             pass
-    if len(str_atoms_sup)>0:
-        superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
-        superimposer.apply(other.get_atoms())
+
+    superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
+    superimposer.apply(other.get_atoms())
 
     for chain in other:
         if chain != other_chain:
             chain.detach_parent()
             return chain
-
 
 def complex_builder(filelist):
 
@@ -79,18 +78,28 @@ def complex_builder(filelist):
 
     complex = Structure.Structure("complex")
 
+    start = False
+
     for structure, other in structure_combinations:
 
         similarity = compare_sequences(structure, other)
 
-        other_chain = similarity[1]
-
         if similarity:
-            new_chain = superimpose_chain(structure, other, similarity)
 
-            complex.add(structure)
+            chain = similarity[0][0]
 
-            complex[0].add(new_chain)
+            other_chain = similarity[0][1]
+
+            if not start:
+                complex.add(structure[0])
+
+            new_chain = superimpose_chain(structure[0], other[0], chain, other_chain)
+
+            if not structure_clashes(complex, new_chain):
+
+                complex[0].add(new_chain)
+
+        start = True
 
     return complex
 
@@ -110,7 +119,7 @@ def structure_clashes(complex, chain):
 def write_pdb(structure, number):
     io = PDBIO()
     io.set_structure(structure)
-    io.save("model_"+str(number) + "model.pdb")
+    io.save("model_"+str(number) + ".pdb")
     return "File was correctly saved"
 
 
@@ -127,7 +136,7 @@ if __name__ == "__main__":
 
     if os.path.isdir(options.infile):
         filelist = [f for f in os.listdir(options.infile) if f.endswith(".pdb")]
-    """
+
 
     str1 = read_pdb("WyQ.pdb")
 
@@ -145,8 +154,6 @@ if __name__ == "__main__":
 
     filelist = ["WyQ.pdb", "QyH.pdb"]
 
-    """
-
     chainQ1 = str1[0]["Q"]
 
     chainQ3 = str2[0]["Q"]
@@ -157,3 +164,6 @@ if __name__ == "__main__":
 
     align = align_sequences(seqQ1, seqQ3)
     """
+    #files_path = [os.path.join("PDB_files", x) for x in os.listdir("PDB_files")]
+
+    #com = complex_builder(files_path)
