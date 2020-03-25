@@ -207,15 +207,22 @@ class Complex():
 				for i in range(len(names)):
 					if i==len(sequences):
 						sequences.append(seq)
-						self.pairs[pair_id][chain].id = names[i]
-						#new_child_dict[names[i]] = self.pairs[pair_id].child_dict[chain]
+						renamed_chain = self.pairs[pair_id][chain]
+						self.pairs[pair_id].detach_child[chain]
+						renamed_chain.id = names[i]
+						self.pairs[pair_id].add(renamed_chain)
+						
+						
+						
+						new_child_dict[names[i]] = self.pairs[pair_id].child_dict[names[i]]
 					else:
 						alignment = align_sequences(seq, sequences[i])
 						final_score = alignment[2]/max(len(seq), len(sequences[i]))
 						if final_score >= threshold:
-							self.pairs[pair_id][chain].id = names[i]
-							#new_child_dict[names[i]] = self.pairs[pair_id].child_dict[chain]
-
+							renamed_chain = self.pairs[pair_id][chain]
+							self.pairs[pair_id].detach_child[chain]
+							renamed_chain.id = names[i]
+							self.pairs[pair_id].add(renamed_chain)
 			#self.pairs[pair_id].child_dict = new_child_dict
 
 
