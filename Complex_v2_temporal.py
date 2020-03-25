@@ -140,8 +140,9 @@ class Complex():
 
 
 			missing_tries.pop(model_chain_id)
-
-		write_pdb(current_model)
+		
+		write_pdb(current_model,model_number)
+		
 
 		"""
 		PSEUDOCODE -> missing functions
@@ -223,10 +224,13 @@ def get_rmsd(chain_a,chain_b):
 
 	for residue1, residue2 in zip(chain_a,chain_b):
 		try:
-			str_atoms_sup.append([x for x in residue1[('CA')].get_vector()])
-			other_atoms_sup.append([x for x in residue2[('CA')].get_vector()])
+			if residue1[('CA')].get_vector() and residue2[('CA')].get_vector():
+				str_atoms_sup.append([x for x in residue1[('CA')].get_vector()])
+				other_atoms_sup.append([x for x in residue2[('CA')].get_vector()])
 		except:
 			pass
 	#print(len(str_atoms_sup), str_atoms_sup[0])
+	if len(str_atoms_sup)==0:
+		return(0) 
 	Super.set(np.array(str_atoms_sup), np.array(other_atoms_sup))
 	return(Super.get_init_rms())
