@@ -53,17 +53,17 @@ def compare_sequences(structure, other):
 def superimpose_chain(structure, other, chain, other_chain): #(start, end):
     superimposer = Superimposer()
 
-    str_atoms_sup = []
-    other_atoms_sup = []
+    CA_str_atoms_sup = [residue['CA'] for residue in chain.get_residues() if 'CA' in [atom.get_id() for atom in residue.get_atoms()]]
+    CA_other_atoms_sup = [residue['CA'] for residue in other_chain.get_residues() if 'CA' in [atom.get_id() for atom in residue.get_atoms()]]
 
-    for residue1, residue2 in zip(chain,other_chain):
-        try:
-            str_atoms_sup.append(residue1[('CA')])
-            other_atoms_sup.append(residue2[('CA')])
-        except KeyError:
-            pass
+    P_str_atoms_sup = [residue['P'] for residue in chain.get_residues() if 'P' in [atom.get_id() for atom in residue.get_atoms()]]
+    P_other_atoms_sup = [residue['P'] for residue in other_chain.get_residues() if 'P' in [atom.get_id() for atom in residue.get_atoms()]]
 
-    superimposer.set_atoms(str_atoms_sup, other_atoms_sup)
+    if CA_str_atoms_sup:
+        superimposer.set_atoms(CA_str_atoms_sup, CA_other_atoms_sup)
+    else:
+        superimposer.set_atoms(P_str_atoms_sup, P_other_atoms_sup)
+
     superimposer.apply(other.get_atoms())
 
     for chain in other:
