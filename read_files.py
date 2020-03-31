@@ -106,7 +106,7 @@ def complex_builder(filelist):
 
 def structure_clashes(complex, chain):
 
-    complex_atoms = [atom for atom in list(complex.get_atoms()) if atom.id == "CA"]
+    complex_atoms = [atom for atom in list(complex.get_atoms())]# if atom.id == "CA"]
     neighbor_search = NeighborSearch(complex_atoms)
 
     for chain_atom in list(chain.get_atoms()):
@@ -116,11 +116,10 @@ def structure_clashes(complex, chain):
 
     return False
 
-def write_pdb(structure, number):
+def write_pdb(structure, number, directory):
     io = PDBIO()
     io.set_structure(structure)
-    io.save("model_"+str(number) + ".pdb")
-    return "File was correctly saved"
+    io.save(str(directory) + "/model_" + str(number) + ".pdb")
 
 
 

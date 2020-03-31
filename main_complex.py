@@ -23,6 +23,12 @@ def main():
                         default = False,
                         action="store_true")
 
+    parser.add_argument('-e', "--energy",
+                        dest="energy",
+                        help="Calculates the energy profile and z-score of the generated models",
+                        default= False,
+                        action='store_true')
+
     parser.add_argument('-st', "--stoichiometry",
                         dest="stoichiometry",
                         help="Allows the user to pass the stoichiometry once the chains have been processed.",
@@ -33,7 +39,7 @@ def main():
     parser.add_argument('-o', '--outdir',
                         dest="outdir",
                         action='store',
-                        default = "results",
+                        default = "models",
                         help='Indicate a name to create a directory where the outputs will be written')
 
     parser.add_argument('-c', '--correct_chains',
@@ -46,7 +52,13 @@ def main():
 
     complex = Complex()
 
-    complex.get_complex(options.indir, options.stoichiometry, options.cor, options.outdir)
+    complex.get_complex(options.indir, options.stoichiometry,  options.outdir, options.cor)
+
+    if options.optimize:
+        complex.optimize_models(options.outdir)
+
+    if options.energy:
+        complex.energy_profiles(options.outdir)
 
 if __name__ == "__main__":
 

@@ -1,5 +1,7 @@
 # import our functions I guess we will eventually change read_files name
 from read_files import *
+from modeller_functions import *
+from plots import *
 import os
 import sys
 import copy
@@ -19,7 +21,7 @@ class Complex():
 		comunicator(self.get_pdbs("."))          # as an unreadable pdb and ask the user how to continue.
 
 
-	def get_complex(self, pdb_folder = ".", stoichiometry = False, correct_chains = True, stop_if_warnings = True):
+	def get_complex(self, pdb_folder = ".", stoichiometry = False, directory = "models", correct_chains = False, stop_if_warnings = True):
 		"""Builds the complex using pdbs in pdb_folder wich should contain
 		pairs of interacting structures. Stoichiometry can be given as a
 		dictionary with chain names as key, if not given, all fitting structures
@@ -48,17 +50,24 @@ class Complex():
 
 		if not correct_chains:
 			self.get_chains_corrected()
+			print("corrected")
+			print("corrected")
 		for pair_index in range(len(self.pairs)):
 			for chain_name in self.pairs[pair_index][0].child_dict:
 				try:
-					self.chain_dict[chain_name].append(pair_index)
+					self.chain_dict[chain_name[0]].append(pair_index)
 				except: # the first time a chain_name used, except will create the coresponding list
-					self.chain_dict[chain_name] = [pair_index,]
+					self.chain_dict[chain_name[0]] = [pair_index,]
 
-		self.bulid_complex_no_dna_strange_thinghs_please(self.pairs[0], stoichiometry)
+		if not os.path.exists(directory):
+			os.makedirs(directory)
+
+		print(self.pairs)
+		print(self.chain_dict)
+		self.bulid_complex_no_dna_strange_thinghs_please(self.pairs[0], stoichiometry, directory)
 
 
-	def bulid_complex_no_dna_strange_thinghs_please(self, base, stoichiometry, chain_types = "missing", missing_tries = "all", rmsd_threshold=10):
+	def bulid_complex_no_dna_strange_thinghs_please(self, base, stoichiometry, directory, chain_types = "missing", missing_tries = "all", rmsd_threshold=10):
 		"""Builds the complex without taking into acount posible dificulties associated with dna
 		is a semiprivate function, the users should use get_complex, that ends calling this function"""
 		model_number = len(self.complex_models)
@@ -84,14 +93,16 @@ class Complex():
 		if not stoichiometry:
 			stoichiometry = {x:50 for x in self.chain_dict}
 
+
 		while len(missing_tries)>0:
 			model_chain_id = [x for x in missing_tries.keys()][0]
 			chain_in_model = current_model.child_dict[model_chain_id]
 			while len(missing_tries[model_chain_id])>0:
+				print(missing_tries)
 				pair_id = missing_tries[model_chain_id].pop()
-				other_chain_id = [x for x in self.pairs[pair_id][0].child_dict.keys() if x != chain_types[model_chain_id]][0]
 				print("-"*100)
-				print(pair_id)
+				print(pair_id, self.pairs[pair_id][0].child_dict)
+				other_chain_id = [x for x in self.pairs[pair_id][0].child_dict.keys() if x[0] == chain_types[model_chain_id]][0]
 				other_chain = self.pairs[pair_id][0].child_dict[other_chain_id]
 
 				#seq_in_model = get_sequence(chain_in_model)
@@ -100,10 +111,13 @@ class Complex():
 
 				#start = alignment[3]+1
 				#end = alignment[4]+1
-
+				print("-"*100, "CHAIN_TYPES:", chain_types)
+				print(self.pairs[pair_id][0].child_dict,chain_in_model, other_chain, chain_types[model_chain_id])
 				rotated_chain = superimpose_chain(current_model, self.pairs[pair_id][0], chain_in_model, other_chain) #start, end)
-				if rotated_chain is None:
+				rotated_chain = copy.deepcopy(rotated_chain)# if the original pair rotates is not important but we do not want its chain
+				if rotated_chain is None: # names to be chanched, and once the rotated chain added to the model, it should not move
 					continue # Not sure why can it be None, but it happens
+				rotated_id = copy.deepcopy(rotated_chain.id[0])
 				if rotated_chain.id in current_model.child_dict.keys():
 					# repeated chain name, need to be changes
 					rotated_chain.id = [x for x in "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm" if x not in current_model.child_dict.keys()][0]
@@ -126,42 +140,32 @@ class Complex():
 
 
 					new_model.add(rotated_chain)
-					new_missing[rotated_chain.id]=[x for x in self.chain_dict[other_chain_id] if x != model_chain_id]
+					new_missing[rotated_chain.id]=[x for x in self.chain_dict[rotated_id[0]] if x != model_chain_id]
 					new_chain_types = copy.deepcopy(chain_types)
-					new_chain_types[rotated_chain.id] = other_chain_id
-					self.bulid_complex_no_dna_strange_thinghs_please(new_model.get_parent(),stoichiometry, new_chain_types, new_missing, rmsd_threshold = rmsd_threshold)
+					new_chain_types[rotated_chain.id] = rotated_id
+					self.bulid_complex_no_dna_strange_thinghs_please(new_model.get_parent(),stoichiometry, directory, new_chain_types, new_missing, rmsd_threshold = rmsd_threshold)
 
 				else:
 					current_model.add(rotated_chain)
-					chain_types[rotated_chain.id] = other_chain_id
-					missing_tries[rotated_chain.id]=self.chain_dict[other_chain_id]
+					chain_types[rotated_chain.id] = rotated_id
+					missing_tries[rotated_chain.id] = [x for x in self.chain_dict[rotated_id[0]] if x != model_chain_id]
+				print(self.pairs[pair_id][0].child_dict)
 			if len(self.chain_dict)> 100:
 				break # maximum chains number
 
 
 			missing_tries.pop(model_chain_id)
 		try:
-			write_pdb(current_model,model_number)
+			write_pdb(current_model, model_number, directory)
 		except:
-			print(model_number,current_model.child_dict) 
+			print(model_number,current_model.child_dict)
 
-		"""
-		PSEUDOCODE -> missing functions
-		superimpose (chain_in_model, other_chain)
-		rotate and translate the other chain, add it to the current model
-		Check for clashes.
-		if clashes:
-			search for the responsables of such clashes
-			check if the clashes are becouse we are trying to add a chain that already was there -> rmsd
-				if so, remove the chain from the model and continue, this is good.
-				if not so:
-					recursively call this function with the current model and the chash responsivles removed (without removing the new chain)
-					remove the new chain and continue
-		"""
 	def get_clash_responsibles(self,current_model, rotated_chain):
 		"""returns the chains in current_model coliding with the new rotated chain."""
+		print("GET CLASH RESPONSABLES, in-chain:",rotated_chain)
 		troublemakers = []
 		for chain_id in current_model.child_dict:
+			print("   other chain_id:",chain_id)
 			if structure_clashes(current_model[chain_id], rotated_chain):
 				troublemakers.append(chain_id)
 		return troublemakers
@@ -194,36 +198,65 @@ class Complex():
 
 
 
-	def get_chains_corrected(threshold = 1):
+	def get_chains_corrected(self,threshold = 1):
 		"""Renames the chains so that equal or really similar sequences get the same name."""
 		names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		sequences = []
+		original_names = [] # debugging use only
 		for pair_id in range(len(self.pairs)):
 			#new_child_dict = {}
-			old_chain_names = [x for x in self.pairs[pair_id].child_dict.keys()]
+			old_chain_names = [x for x in self.pairs[pair_id][0].child_dict.keys()]
+			print(self.pairs[pair_id][0].child_dict, old_chain_names)
 			for chain in old_chain_names:
-				seq = get_sequence(self.pairs[pair_id].child_dict[chain])
+				seq = get_sequence(self.pairs[pair_id][0][chain])
+				print("chain", chain)
 
 				for i in range(len(names)):
-					if i==len(sequences):
+					if i>=len(sequences):
+						print("i==len")
 						sequences.append(seq)
-						renamed_chain = self.pairs[pair_id][chain]
-						self.pairs[pair_id].detach_child[chain]
-						renamed_chain.id = names[i]
-						self.pairs[pair_id].add(renamed_chain)
-						
-						
-						
-						new_child_dict[names[i]] = self.pairs[pair_id].child_dict[names[i]]
-					else:
-						alignment = align_sequences(seq, sequences[i])
-						final_score = alignment[2]/max(len(seq), len(sequences[i]))
-						if final_score >= threshold:
-							renamed_chain = self.pairs[pair_id][chain]
-							self.pairs[pair_id].detach_child[chain]
+						renamed_chain = self.pairs[pair_id][0][chain]
+						original_names.append(copy.copy(renamed_chain.id))
+						self.pairs[pair_id][0].detach_child(chain)
+						try:
 							renamed_chain.id = names[i]
-							self.pairs[pair_id].add(renamed_chain)
+							self.pairs[pair_id][0].add(renamed_chain)
+						except:
+							renamed_chain.id = names[i]+"1" # if a pair contains 2 equal structures this 1 will help diferenciate them
+							self.pairs[pair_id][0].add(renamed_chain)
+						break
+
+
+
+						#new_child_dict[names[i]] = self.pairs[pair_id].child_dict[names[i]]
+					else:
+						print("i!=len")
+						try:
+							alignment = align_sequences(seq, sequences[i])
+							final_score = alignment[2]/max(len(seq), len(sequences[i]))
+						except:
+							continue # if the alignment fails assume they are not the same molecule
+						if final_score >= threshold:
+							print("score, it's chain",original_names[i])
+							renamed_chain = self.pairs[pair_id][0][chain]
+							self.pairs[pair_id][0].detach_child(chain)
+							try:
+								renamed_chain.id = names[i]
+								self.pairs[pair_id][0].add(renamed_chain)
+							except:
+								renamed_chain.id = names[i]+"1"
+								self.pairs[pair_id][0].add(renamed_chain)
+							break
 			#self.pairs[pair_id].child_dict = new_child_dict
+
+	def energy_profiles(self, directory):
+		for i in range(len(self.complex_models)):
+			get_profile(directory, i)
+			plot_profile(directory, i)
+
+	def optimize_models(self, directory):
+		for i in range(len(self.complex_models)):
+			optimize(directory, i)
 
 
 def get_rmsd(chain_a,chain_b):
@@ -242,6 +275,6 @@ def get_rmsd(chain_a,chain_b):
 			pass
 	#print(len(str_atoms_sup), str_atoms_sup[0])
 	if len(str_atoms_sup)==0:
-		return(0) 
+		return(0)
 	Super.set(np.array(str_atoms_sup), np.array(other_atoms_sup))
 	return(Super.get_init_rms())
