@@ -1,7 +1,7 @@
 # import our functions I guess we will eventually change read_files name
-from read_files import *
-from modeller_functions import *
-from plots import *
+from ComplexAssembler.read_files import *
+from ComplexAssembler.modeller_functions import *
+from ComplexAssembler.plots import *
 import os
 import sys
 import copy
