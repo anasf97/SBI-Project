@@ -123,46 +123,4 @@ def write_pdb(structure, number, directory):
 
 
 
-if __name__ == "__main__":
-    """
-    parser = argparse.ArgumentParser(description="Take input and output files...")
 
-    parser.add_argument("-i", "--input", dest="infile", action="store", default= os.getcwd(), help="Input FASTA formatted file")
-
-    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=False, help="Print log in stderr")
-
-    options = parser.parse_args()
-
-    if os.path.isdir(options.infile):
-        filelist = [f for f in os.listdir(options.infile) if f.endswith(".pdb")]
-
-
-    str1 = read_pdb("WyQ.pdb")
-
-    str2 = read_pdb("QyH.pdb")
-
-    str3 = read_pdb("otherH.pdb")
-
-    seq1 = get_sequence(str1)
-
-    seq2 = get_sequence(str2)
-
-    seq3 = get_sequence(str3)
-
-    sim = compare_sequences(str1, str2)
-
-    filelist = ["WyQ.pdb", "QyH.pdb"]
-
-    chainQ1 = str1[0]["Q"]
-
-    chainQ3 = str2[0]["Q"]
-
-    seqQ1 = get_sequence(chainQ1)
-
-    seqQ3 = get_sequence(chainQ3)
-
-    align = align_sequences(seqQ1, seqQ3)
-    """
-    #files_path = [os.path.join("PDB_files", x) for x in os.listdir("PDB_files")]
-
-    #com = complex_builder(files_path)

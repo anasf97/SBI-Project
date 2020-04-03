@@ -1,6 +1,3 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas
 import pylab
 
 def plot_profile(directory, number):

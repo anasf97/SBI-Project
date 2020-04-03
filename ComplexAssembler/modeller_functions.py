@@ -19,11 +19,12 @@ def get_profile(directory, number):
 
     zscore = mdl.assess_normalized_dope()
 
-    print("Z-score of model %d is %4f" %(number, zscore))
+    print("Z-score of model %d is %.4f" %(number, zscore))
 
     # Asess with DOPE:
     s = selection(mdl) # all atom selection
-    s.assess_dope(output='ENERGY_PROFILE NO_REPORT', file = code + ".profile", normalize_profile=True, smoothing_window = 20)
+
+    s.assess_dope(output='ENERGY_PROFILE NO_REPORT', file = code + ".profile", normalize_profile=True, smoothing_window = 30)
 
 def optimize(directory, number):
     log.none()
@@ -38,16 +39,14 @@ def optimize(directory, number):
     #read model files
     code = directory + "/model_" + str(number)
     mdl = complete_pdb(env, filename)
-    mdl.write(file=code+'.ini')
+
 
     # Select all atoms:
     atmsel = selection(mdl)
 
     # Generate the restraints:
     mdl.restraints.make(atmsel, restraint_type='stereo', spline_on_site=False)
-    mdl.restraints.write(file=code+'.rsr')
 
-    mpdf = atmsel.energy()
 
     # Create optimizer objects and set defaults for all further optimizations
     cg = conjugate_gradients(output='NO_REPORT')
@@ -68,6 +67,6 @@ def optimize(directory, number):
     # Finish off with some more CG, and write stats every 5 steps
     cg.optimize(atmsel, max_iterations=20, actions=[actions.trace(5, trcfil)])
 
-    mpdf = atmsel.energy()
+    #mpdf = atmsel.energy()
 
     mdl.write(file=code+'.pdb')
